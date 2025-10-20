@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Calculated Rebellion - Bitcoin Retirement Calculator</title>
+    <meta name="description" content="Bitcoin retirement calculator for people 45+ who are behind on savings. Calculate your catch-up strategy with 20-40% crypto allocation.">
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/recharts@2.5.0/dist/Recharts.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Open Graph / Social Media Meta Tags -->
+    <meta property="og:title" content="The Calculated Rebellion - Bitcoin Retirement Calculator">
+    <meta property="og:description" content="For people 45+ who are behind on retirement. Calculate your catch-up strategy.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://images.unsplash.com/photo-1621761191319-c6fb62004040?w=1200">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="The Calculated Rebellion - Bitcoin Calculator">
+    <meta name="twitter:description" content="Bitcoin retirement calculator for catch-up investors 45+">
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState } = React;
+        const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } = Recharts;
+
+        function BitcoinRetirementCalculator() {
+          const [age, setAge] = useState(50);
+          const [currentSavings, setCurrentSavings] = useState(100000);
+          const [monthlyContribution, setMonthlyContribution] = useState(500);
+          const [bitcoinPercent, setBitcoinPercent] = useState(30);
+          const retirementAge = 65;
+          
+          const yearsToRetirement = retirementAge - age;
+          
+          const calculateScenario = (bitcoinPercent, bitcoinReturn = 25, traditionalReturn = 7) => {
+            const years = yearsToRetirement;
+            let traditional = currentSavings * (1 - bitcoinPercent / 100);
+            let bitcoin = currentSavings * (bitcoinPercent / 100);
+            
+            const yearlyData = [];
+            
+            for (let year = 0; year <= years; year++) {
+              yearlyData.push({
+                year: age + year,
+                total: Math.round(traditional + bitcoin),
+                traditional: Math.round(traditional),
+                bitcoin: Math.round(bitcoin)
+              });
+              
+              if (year < years) {
+                const annualContribution = monthlyContribution * 12;
+                traditional += annualContribution * (1 - bitcoinPercent / 100);
+                bitcoin += annualContribution * (bitcoinPercent / 100);
+                
+                traditional *= (1 + traditionalReturn / 100);
+                bitcoin *= (1 + bitcoinReturn / 100);
+              }
+            }
+            
+            return yearlyData;
+          };
+          
+          const scenario0 = calculateScenario(0);
+          const scenario10 = calculateScenario(10);
+          const scenario30 = calculateScenario(30);
+          const scenario50 = calculateScenario(50);
+          const scenario80 = calculateScenario(80);
+          const scenarioCustom = calculateScenario(bitcoinPercent);
+          
+          const final0 = scenario0[scenario0.length - 1].total;
+          const final10 = scenario10[scenario10.length - 1].total;
+          const final30 = scenario30[scenario30.length - 1].total;
+          const final50 = scenario50[scenario50.length - 1].total;
+          const final80 = scenario80[scenario80.length - 1].total;
+          const finalCustom = scenarioCustom[scenarioCustom.length - 1].total;
+          
+          const chartData = scenario0.map((item, index) => ({
+            year: item.year,
+            'Traditional Only': scenario0[index].total,
+            '10% Crypto': scenario10[index].total,
+            '30% Crypto': scenario30[index].total,
+            '50% Crypto': scenario50[index].total,
+            '80% Crypto': scenario80[index].total,
+            [`Your ${bitcoinPercent}%`]: scenarioCustom[index].total,
+          }));
+          
+          const formatCurrency = (value) => {
+            return new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency: 'USD',
+              maximumFractionDigits: 0
+            }).format(value);
+          };
+          
+          const getRiskLevel = () => {
+            if (bitcoinPercent === 0) return { level: 'None', color: 'gray', message: 'No crypto allocation' };
+            if (bitcoinPercent <= 10) return { level: 'Conservative', color: 'blue', message: 'Playing it safe - but will it get you there?' };
+            if (bitcoinPercent <= 40) return { level: 'Moderate', color: 'orange', message: 'The sweet spot for most catch-up investors' };
+            if (bitcoinPercent <= 80) return { level: 'Aggressive', color: 'red', message: 'High risk, high reward - you\'ve done the math' };
+            return { level: 'Maximum', color: 'purple', message: 'All-in on crypto - extremely high risk' };
+          };
+          
+          const risk = getRiskLevel();
+          
+          const retirementNeeded = 1200000;
+          const isAdequate = finalCustom >= retirementNeeded;
+
+          return (
+            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-orange-900 to-red-900 p-4 md:p-8">
+              <div className="max-w-6xl mx-auto">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-orange-600 to-red-600 rounded-lg shadow-2xl p-6 mb-6 text-white">
+                  <h1 className="text-3xl md:text-5xl font-bold mb-2">
+                    The Calculated Rebellion
+                  </h1>
+                  <p className="text-xl mb-4 opacity-90">
+                    Bitcoin Retirement Calculator for People Who Are Behind
+                  </p>
+                  <div className="bg-black bg-opacity-30 border-l-4 border-yellow-400 p-4 rounded">
+                    <p className="text-sm">
+                      <strong>⚡ This is NOT standard financial advice.</strong> Your advisor will tell you to put 1-5% in crypto. 
+                      But if you're behind on retirement, "safe" advice keeps you behind. This calculator shows you what's REALLY possible 
+                      when you take calculated risk.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Reality Check Banner */}
+                <div className="bg-yellow-500 text-black rounded-lg shadow-lg p-6 mb-6 border-4 border-yellow-600">
+                  <h2 className="text-2xl font-bold mb-2">💡 The Uncomfortable Truth</h2>
+                  <p className="text-lg mb-3">
+                    To retire comfortably in {yearsToRetirement} years, you'll likely need <strong>$1.2M - $2M+</strong> 
+                    (accounting for inflation and realistic expenses).
+                  </p>
+                  <p className="text-base">
+                    Traditional advice (7% returns, conservative investing) <strong>won't get you there</strong> if you're starting with 
+                    {formatCurrency(currentSavings)} at age {age}. That's just math.
+                  </p>
+                </div>
+
+                {/* Input Section */}
+                <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800 mb-4">Your Current Situation</h2>
+                  
+                  <div className="grid md:grid-cols-3 gap-6 mb-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Your Current Age
+                      </label>
+                      <input
+                        type="number"
+                        min="45"
+                        max="64"
+                        value={age}
+                        onChange={(e) => setAge(parseInt(e.target.value))}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Ages 45-64</p>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Total Investable Assets
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="10000"
+                        value={currentSavings}
+                        onChange={(e) => setCurrentSavings(parseInt(e.target.value))}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">{formatCurrency(currentSavings)}</p>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Monthly Investment
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="100"
+                        value={monthlyContribution}
+                        onChange={(e) => setMonthlyContribution(parseInt(e.target.value))}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">{formatCurrency(monthlyContribution)}/month</p>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-gray-700">
+                      <strong>You have {yearsToRetirement} years until age {retirementAge}.</strong>
+                      {yearsToRetirement >= 10 ? (
+                        <span className="text-green-600"> ✓ You have time for 2+ Bitcoin market cycles. Real catch-up is possible.</span>
+                      ) : yearsToRetirement >= 5 ? (
+                        <span className="text-yellow-600"> ⚠️ You have 1-2 cycles left. Time is your enemy now.</span>
+                      ) : (
+                        <span className="text-red-600"> 🚨 Less than 5 years. Aggressive crypto is very high risk.</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Crypto Allocation Slider */}
+                <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-lg shadow-2xl p-8 mb-6 text-white">
+                  <h2 className="text-2xl font-bold mb-3">
+                    🎯 YOUR CRYPTO ALLOCATION
+                  </h2>
+                  
+                  <div className="bg-white bg-opacity-20 rounded-lg p-6 mb-4">
+                    <div className="text-center mb-4">
+                      <div className="text-6xl font-bold mb-2">{bitcoinPercent}%</div>
+                      <div className="text-xl font-semibold">
+                        {formatCurrency(currentSavings * bitcoinPercent / 100)} in crypto
+                      </div>
+                      <div className="text-sm opacity-75">
+                        {formatCurrency(currentSavings * (1 - bitcoinPercent / 100))} stays traditional
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-4 mb-3">
+                      <span className="text-sm font-medium w-12">0%</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="5"
+                        value={bitcoinPercent}
+                        onChange={(e) => setBitcoinPercent(parseFloat(e.target.value))}
+                        className="flex-1 h-4 bg-white bg-opacity-30 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <span className="text-sm font-medium w-12">100%</span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-xs font-medium">
+                      <span>Traditional</span>
+                      <span>Conservative<br/>(5-10%)</span>
+                      <span>Moderate<br/>(20-40%)</span>
+                      <span>Aggressive<br/>(40-80%)</span>
+                      <span>Maximum</span>
+                    </div>
+                  </div>
+                  
+                  <div className={`p-4 rounded-lg ${
+                    risk.color === 'gray' ? 'bg-gray-700' :
+                    risk.color === 'blue' ? 'bg-blue-600' :
+                    risk.color === 'orange' ? 'bg-orange-600' :
+                    risk.color === 'red' ? 'bg-red-700' :
+                    'bg-purple-700'
+                  }`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold">Risk Level:</span>
+                      <span className="text-2xl font-bold">{risk.level}</span>
+                    </div>
+                    <p className="text-sm opacity-90">{risk.message}</p>
+                  </div>
+                </div>
+
+                {/* Results - Simplified for space */}
+                <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                    Your Retirement at Age {retirementAge}
+                  </h2>
+                  
+                  <div className={`mb-6 p-6 rounded-lg shadow-xl border-4 ${
+                    isAdequate 
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 border-green-300' 
+                      : 'bg-gradient-to-r from-red-500 to-orange-600 border-red-300'
+                  }`}>
+                    <div className="text-white">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <div className="text-sm font-semibold mb-1 opacity-90">YOUR {bitcoinPercent}% ALLOCATION:</div>
+                          <div className="text-5xl font-bold">{formatCurrency(finalCustom)}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm opacity-90 mb-1">vs. Traditional:</div>
+                          <div className="text-3xl font-bold">
+                            +{formatCurrency(finalCustom - final0)}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className={`p-4 rounded-lg ${
+                        isAdequate 
+                          ? 'bg-green-700 bg-opacity-50' 
+                          : 'bg-red-700 bg-opacity-50'
+                      }`}>
+                        {isAdequate ? (
+                          <div>
+                            <p className="font-bold text-lg mb-1">✅ This Could Work</p>
+                            <p className="text-sm">
+                              {formatCurrency(finalCustom)} exceeds the $1.2M baseline. You've given yourself a real shot.
+                            </p>
+                          </div>
+                        ) : (
+                          <div>
+                            <p className="font-bold text-lg mb-1">⚠️ Still Short of Goal</p>
+                            <p className="text-sm">
+                              You're {formatCurrency(retirementNeeded - finalCustom)} short of $1.2M. Consider higher allocation or more monthly investment.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-5 gap-2 mb-4 text-xs">
+                    <div className="bg-gray-100 p-2 rounded text-center">
+                      <div className="text-gray-600 mb-1">0%</div>
+                      <div className="font-bold text-gray-800">{formatCurrency(final0)}</div>
+                    </div>
+                    <div className="bg-blue-100 p-2 rounded text-center">
+                      <div className="text-gray-600 mb-1">10%</div>
+                      <div className="font-bold text-blue-600">{formatCurrency(final10)}</div>
+                    </div>
+                    <div className="bg-orange-100 p-2 rounded text-center border-2 border-orange-400">
+                      <div className="text-gray-600 mb-1">30%</div>
+                      <div className="font-bold text-orange-600">{formatCurrency(final30)}</div>
+                    </div>
+                    <div className="bg-red-100 p-2 rounded text-center">
+                      <div className="text-gray-600 mb-1">50%</div>
+                      <div className="font-bold text-red-600">{formatCurrency(final50)}</div>
+                    </div>
+                    <div className="bg-purple-100 p-2 rounded text-center">
+                      <div className="text-gray-600 mb-1">80%</div>
+                      <div className="font-bold text-purple-600">{formatCurrency(final80)}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* CTA */}
+                <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800 mb-3">Ready to Learn More?</h2>
+                  
+                  <div className="bg-gradient-to-r from-orange-600 to-red-600 rounded-lg p-6 text-white">
+                    <h3 className="text-xl font-bold mb-2">📚 Get the Complete Guide (Free)</h3>
+                    <p className="text-sm mb-4 opacity-90">
+                      "The Calculated Rebellion: A Bitcoin Retirement Guide for People Who Are Behind"
+                    </p>
+                    <div className="bg-white rounded-lg p-4">
+                      <input
+                        type="email"
+                        placeholder="Enter your email"
+                        className="w-full px-4 py-3 text-gray-800 rounded-lg mb-3 focus:ring-2 focus:ring-orange-500 focus:outline-none"
+                      />
+                      <button className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold py-3 px-6 rounded-lg hover:from-orange-600 hover:to-red-600 transition-all">
+                        Send Me The Free Guide
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="text-center border-t pt-6 mt-6">
+                    <p className="text-sm text-gray-600">
+                      Created by <strong>J. Scott MacMillan</strong> (CryptoCowboyMT)<br/>
+                      📧 jscott@freedomlife3.com • 🌐 freedomlife3.com
+                    </p>
+                  </div>
+                </div>
+
+                {/* Disclaimer */}
+                <div className="text-center text-xs text-gray-300">
+                  <p>
+                    DISCLAIMER: This calculator is for educational purposes only and does not constitute financial advice. 
+                    Cryptocurrency investments are highly speculative and risky. You could lose all of your investment. 
+                    Consult with licensed professionals before making investment decisions.
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        ReactDOM.render(<BitcoinRetirementCalculator />, document.getElementById('root'));
+    </script>
+</body>
+</html>
